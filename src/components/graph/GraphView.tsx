@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic"
 import { useCallback, useEffect, useState } from "react"
 
-import { getAddressDetail, getGraphDataset } from "@/lib/graphData"
+import { getAddressDetail, getGraphDataset } from "@/lib/api/graph"
 import type { AddressDetail, GraphDataset } from "@/lib/graphTypes"
 import { AddressDetails, type AddressDetailsStatus } from "./AddressDetails"
 import type { GraphControlsApi } from "./GraphCanvas"
@@ -28,9 +28,9 @@ const message = (err: unknown, fallback: string) =>
 
 /**
  * Additive dashboard section: an interactive transaction graph plus a per-
- * address drill-down. Reuses the shared risk model (`riskLevel`) and the
- * existing dashboard data (via `graphData.ts`). Self-contained -- the only
- * touch to existing code is being rendered once inside `AppShell`.
+ * address drill-down, backed by the SentriX API (`@/lib/api/graph` ->
+ * `/graph/{id}`, `/address/{id}/risk`). Reuses the shared risk model
+ * (`riskLevel`); `@/lib/graphData` remains as the offline fixture.
  */
 export function GraphView() {
   const [minRisk, setMinRisk] = useState(0)
