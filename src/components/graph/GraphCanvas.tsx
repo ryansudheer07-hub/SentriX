@@ -243,5 +243,5 @@ export function GraphCanvas({
     })
   }, [selectedId])
 
-  return <div ref={containerRef} className="graph-canvas" />
+  return <div ref={containerRef} className="graph-canvas" data-lenis-prevent />
 }

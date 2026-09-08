@@ -1,4 +1,5 @@
 import { BinaryField } from "./BinaryField"
+import { Reveal } from "./Reveal"
 import { SiteIntro } from "./SiteIntro"
 import { TopNav } from "./TopNav"
 import { AuthGate } from "./auth/AuthGate"
@@ -26,21 +27,33 @@ export function AppShell() {
         <TopNav />
         <main className="page">
           <div className="dashboard">
-            <DashboardHeader />
-            <StatGrid />
+            <Reveal>
+              <DashboardHeader />
+            </Reveal>
+            <Reveal delay={60}>
+              <StatGrid />
+            </Reveal>
 
-            <div className="dashboard__row dashboard__row--split">
-              <RiskOverview />
-              <TransactionGraph />
-            </div>
+            <Reveal delay={120}>
+              <div className="dashboard__row dashboard__row--split">
+                <RiskOverview />
+                <TransactionGraph />
+              </div>
+            </Reveal>
 
-            <div className="dashboard__row dashboard__row--pair">
-              <RiskAlerts />
-              <Explainability />
-            </div>
+            <Reveal>
+              <div className="dashboard__row dashboard__row--pair">
+                <RiskAlerts />
+                <Explainability />
+              </div>
+            </Reveal>
 
-            <LiveActivityTable />
-            <GraphView />
+            <Reveal>
+              <LiveActivityTable />
+            </Reveal>
+            <Reveal>
+              <GraphView />
+            </Reveal>
           </div>
         </main>
       </AuthGate>

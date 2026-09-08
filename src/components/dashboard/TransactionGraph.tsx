@@ -10,7 +10,6 @@ import {
 } from "react"
 
 import { graphEdges, graphLegend, graphNodes } from "@/lib/dashboardData"
-import { GraphInteraction } from "../GraphInteraction"
 import { MinusIcon, PlusIcon } from "../icons"
 import { layoutLayeredDag } from "./transactionGraphLayout"
 
@@ -311,9 +310,9 @@ export function TransactionGraph() {
         ))}
       </div>
 
-      <GraphInteraction
+      <div
         className="tx-graph__canvas"
-        baseBackgroundImage={CANVAS_BACKGROUND}
+        style={{ backgroundImage: CANVAS_BACKGROUND }}
       >
         <div className="tx-graph__toolbar">
           <button
@@ -362,6 +361,7 @@ export function TransactionGraph() {
         <svg
           ref={svgRef}
           className="tx-graph__svg"
+          data-lenis-prevent
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           preserveAspectRatio="xMidYMid meet"
           role="img"
@@ -553,7 +553,7 @@ export function TransactionGraph() {
             </g>
           </g>
         </svg>
-      </GraphInteraction>
+      </div>
     </section>
   )
 }
