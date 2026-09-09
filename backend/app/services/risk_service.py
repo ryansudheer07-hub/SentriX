@@ -13,6 +13,10 @@ import hashlib
 from datetime import datetime, timezone
 
 from app.models.schemas import Alert, AddressRisk, GraphEdge, GraphNode, RiskFactors, SubgraphResponse
+<<<<<<< HEAD
+=======
+from app.services import traffic_correlation
+>>>>>>> teammate/main
 
 # In-memory cache of the last computed score per address, refreshed by the
 # rescoring scheduler (Technical Architecture §3.7).
@@ -27,7 +31,16 @@ def _pseudo_random(seed: str, salt: str = "") -> float:
 def _compute_address_risk(address: str) -> AddressRisk:
     ppr = _pseudo_random(address, "ppr")
     gnn = _pseudo_random(address, "gnn")
+<<<<<<< HEAD
     traffic = _pseudo_random(address, "traffic")
+=======
+    # FUSION INTEGRATION POINT (Technical Architecture §3.6): the traffic
+    # component now comes from the Traffic Correlation Engine's live anomaly
+    # snapshot; if it has no data yet, fall back to the deterministic mock so
+    # existing behaviour/tests are unchanged.
+    traffic_signal = traffic_correlation.get_address_traffic_anomaly(address)
+    traffic = traffic_signal if traffic_signal is not None else _pseudo_random(address, "traffic")
+>>>>>>> teammate/main
     weights = {"gnn": 0.6, "ppr": 0.15, "traffic": 0.25}
     fused = gnn * weights["gnn"] + ppr * weights["ppr"] + traffic * weights["traffic"]
 

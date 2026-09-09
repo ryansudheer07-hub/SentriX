@@ -5,3 +5,9 @@ venv/
 .env
 audit.log
 .pytest_cache/
+<<<<<<< HEAD
+=======
+
+# run logs
+*.log
+>>>>>>> teammate/main
