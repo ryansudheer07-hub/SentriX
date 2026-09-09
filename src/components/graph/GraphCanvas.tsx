@@ -46,6 +46,7 @@ function toElements(
 ): cytoscape.ElementDefinition[] {
   const nodes = dataset.nodes.map((n) => {
     const level = riskLevel(n.riskScore)
+    const size = 24 + Math.round(n.riskScore / 6)
     return {
       data: {
         id: n.id,
@@ -53,7 +54,8 @@ function toElements(
         level,
         score: n.riskScore,
         color: palette[level],
-        size: 24 + Math.round(n.riskScore / 6),
+        size,
+        hoverSize: size + 6,
       },
     }
   })
@@ -91,13 +93,19 @@ function buildStyle(palette: Palette): cytoscape.StylesheetJson {
         "text-outline-width": 2,
         "border-width": 1,
         "border-color": "rgba(255, 255, 255, 0.22)",
-        "transition-property": "border-width, border-color, opacity",
-        "transition-duration": 120,
+        "transition-property":
+          "width, height, border-width, border-color, opacity",
+        "transition-duration": 130,
       },
     },
     {
       selector: "node.hover",
-      style: { "border-width": 3, "border-color": palette.outline },
+      style: {
+        "border-width": 3,
+        "border-color": palette.outline,
+        width: "data(hoverSize)",
+        height: "data(hoverSize)",
+      },
     },
     {
       selector: "node.selected",

@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 
-import { SentrixWordmark } from "@/components/SentrixWordmark"
 import { useAuth } from "./AuthProvider"
 
 const DEMO = [
@@ -37,18 +36,25 @@ export function LoginScreen() {
 
   return (
     <section className="login">
-      <div className="login__inner">
-        <SentrixWordmark as="div" animate={false} className="login__wordmark" />
-        <p className="login__eyebrow">
-          Blockchain Forensics <span aria-hidden="true">·</span> Investigator
-          Workstation
+      <form className="login__panel" onSubmit={submit}>
+        <p className="login__hud">
+          <span className="login__hud-dot" aria-hidden="true" />
+          SENTRIX <span className="login__hud-sep">/</span> FORENSIC CORE
         </p>
 
-        <form className="login__card" onSubmit={submit}>
-          <p className="eyebrow eyebrow--gold">Secure Sign-in</p>
+        <p className="login__mark">SENTRIX</p>
 
+        <span className="login__rule" aria-hidden="true" />
+
+        <p className="login__eyebrow">Workstation Access</p>
+        <h1 className="login__title">Enter the investigator workstation.</h1>
+        <p className="login__desc">
+          The gateway is ready. Authenticate to resume your case workspace.
+        </p>
+
+        <div className="login__fields">
           <label className="login__field">
-            <span className="eyebrow">Username</span>
+            <span>Username</span>
             <input
               type="text"
               autoComplete="username"
@@ -57,9 +63,8 @@ export function LoginScreen() {
               required
             />
           </label>
-
           <label className="login__field">
-            <span className="eyebrow">Password</span>
+            <span>Password</span>
             <input
               type="password"
               autoComplete="current-password"
@@ -68,38 +73,40 @@ export function LoginScreen() {
               required
             />
           </label>
+        </div>
 
-          {error && (
-            <p className="login__error" role="alert">
-              {error}
-            </p>
-          )}
+        {error && (
+          <p className="login__error" role="alert">
+            {error}
+          </p>
+        )}
 
-          <button
-            type="submit"
-            className="btn btn--gold login__submit"
-            disabled={busy}
-          >
-            {busy ? "Signing in…" : "Sign in"}
-          </button>
+        <button type="submit" className="login__auth" disabled={busy}>
+          <span>{busy ? "Authenticating…" : "Authenticate"}</span>
+          <span className="login__auth-arrow" aria-hidden="true">
+            ↗
+          </span>
+        </button>
 
-          <div className="login__demo">
-            <span className="eyebrow">Demo accounts</span>
-            <div className="login__demo-row">
-              {DEMO.map((d) => (
-                <button
-                  key={d.username}
-                  type="button"
-                  className="login__demo-chip"
-                  onClick={() => fillDemo(d)}
-                >
-                  {d.role}
-                </button>
-              ))}
-            </div>
-          </div>
-        </form>
-      </div>
+        <div className="login__demo">
+          <span className="login__demo-label">Demo</span>
+          {DEMO.map((d) => (
+            <button
+              key={d.username}
+              type="button"
+              className="login__demo-chip"
+              onClick={() => fillDemo(d)}
+            >
+              {d.role}
+            </button>
+          ))}
+        </div>
+
+        <p className="login__foot" aria-hidden="true">
+          <span>NETWORK: BITCOIN</span>
+          <span>BUILD 2.4.1</span>
+        </p>
+      </form>
     </section>
   )
 }

@@ -3,8 +3,10 @@
 import dynamic from "next/dynamic"
 import { useCallback, useEffect, useState } from "react"
 
+import { useSentrixContext } from "@/lib/ai/context"
+import { IntelligenceDrawer } from "@/components/glass/IntelligenceDrawer"
 import { getAddressDetail, getGraphDataset } from "@/lib/api/graph"
-import type { AddressDetail, GraphDataset } from "@/lib/graphTypes"
+import { riskLevel, type AddressDetail, type GraphDataset } from "@/lib/graphTypes"
 import { AddressDetails, type AddressDetailsStatus } from "./AddressDetails"
 import type { GraphControlsApi } from "./GraphCanvas"
 import { GraphControls } from "./GraphControls"
@@ -49,6 +51,48 @@ export function GraphView() {
   const [detailError, setDetailError] = useState<string | null>(null)
 
   const [controls, setControls] = useState<GraphControlsApi | null>(null)
+
+  const { setContext, command } = useSentrixContext()
+
+  // ---- publish "what the user is looking at" to the SentriX AI context ----
+  useEffect(() => {
+    const node = dataset?.nodes.find((n) => n.id === selectedId)
+    setContext({
+      selectedAddress: selectedId ?? undefined,
+      selectedNode: selectedId
+        ? {
+            id: selectedId,
+            riskScore: node?.riskScore,
+            riskLevel: node ? riskLevel(node.riskScore) : undefined,
+            entityType: node?.category,
+          }
+        : undefined,
+      graphContext: {
+        nodeCount: dataset?.nodes.length,
+        edgeCount: dataset?.edges.length,
+        focusAddress: focus || undefined,
+      },
+    })
+  }, [setContext, selectedId, dataset, focus])
+
+  // ---- apply a command from the assistant (focus / filter / select) ----
+  // Adjust local state during render when a new command arrives -- the
+  // previous-value pattern the graph controls already use, not an effect.
+  const [appliedCommand, setAppliedCommand] = useState(0)
+  if (command && command.nonce !== appliedCommand) {
+    setAppliedCommand(command.nonce)
+    if (command.focusAddress !== undefined) setFocus(command.focusAddress)
+    if (command.selectId !== undefined) setSelectedId(command.selectId || null)
+    if (command.riskFilter !== undefined) {
+      setMinRisk(
+        command.riskFilter === "high"
+          ? 80
+          : command.riskFilter === "medium"
+            ? 50
+            : 0
+      )
+    }
+  }
 
   // ---- dataset ----
   useEffect(() => {
@@ -114,7 +158,7 @@ export function GraphView() {
   const hasGraph = !!dataset && dataset.nodes.length > 0
 
   return (
-    <section id="graph-view" className="panel graph-view">
+    <section id="graph-view" className="panel panel--primary graph-view">
       <div className="graph-view__head">
         <p className="eyebrow eyebrow--gold">Transaction Graph</p>
         <p className="eyebrow graph-view__meta">Address flow · risk-weighted</p>
@@ -166,7 +210,14 @@ export function GraphView() {
             </div>
           )}
         </div>
+      </div>
 
+      <IntelligenceDrawer
+        open={!!selectedId}
+        onClose={() => setSelectedId(null)}
+        title="Address"
+        className="intel-drawer--graph"
+      >
         <AddressDetails
           status={selectedId ? detailStatus : "idle"}
           detail={selectedId ? detail : null}
@@ -175,7 +226,7 @@ export function GraphView() {
           onSelectAddress={handleSelectAddress}
           onClose={() => setSelectedId(null)}
         />
-      </div>
+      </IntelligenceDrawer>
     </section>
   )
 }

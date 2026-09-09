@@ -2,7 +2,7 @@ import { explainability } from "@/lib/dashboardData"
 
 export function Explainability() {
   return (
-    <section className="panel explain">
+    <section id="explainability" className="panel explain">
       <p className="eyebrow eyebrow--gold">Explainability</p>
       <p className="explain__question">{explainability.question}</p>
 

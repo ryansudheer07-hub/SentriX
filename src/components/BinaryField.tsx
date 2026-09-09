@@ -8,23 +8,50 @@ type BinaryFieldProps = {
 }
 
 const SETTINGS = {
-  ambient: { cell: 22, font: 12, flipEvery: 11, flipFrac: 0.01, baseLo: 0.1, baseHi: 0.28 },
-  intro: { cell: 22, font: 13, flipEvery: 7, flipFrac: 0.022, baseLo: 0.14, baseHi: 0.42 },
+  ambient: {
+    cell: 22,
+    font: 12,
+    flipEvery: 11,
+    flipFrac: 0.01,
+    baseLo: 0.1,
+    baseHi: 0.28,
+    hlRadius: 120,
+    hlBoost: 0.5,
+    heatDecay: 0.9,
+    traces: true,
+  },
+  intro: {
+    cell: 22,
+    font: 13,
+    flipEvery: 7,
+    flipFrac: 0.022,
+    baseLo: 0.14,
+    baseHi: 0.42,
+    hlRadius: 84,
+    hlBoost: 0.95,
+    heatDecay: 0.935,
+    traces: false,
+  },
 } as const
 
 const GOLD = [212, 175, 55] as const
 const GOLD_HOT = [246, 224, 150] as const
 
-const HL_RADIUS = 84 // px around the cursor that lights up
-const HL_BOOST = 0.95 // how much heat adds to a cell's alpha
-const HEAT_DECAY = 0.935 // per frame -> trail fades over ~0.6s
+interface Trace {
+  row: number
+  x: number
+  vx: number
+  life: number
+}
 
 /**
  * A field of 0/1 glyphs on a canvas. Digits flip in place on a timer (like
- * live code). The `intro` variant also lights up cells near the pointer and
- * leaves a short decaying trail; the `ambient` (dashboard) variant does not
- * track the cursor. `pointer-events` is off; never affects layout. Static
- * under `prefers-reduced-motion`.
+ * live code). Both variants now warm cells near the pointer and leave a short
+ * decaying trail; the `ambient` (dashboard) variant does it far more gently and
+ * also sends the occasional horizontal "data trace" across a row. Section
+ * density can be nudged live via a `--field-density` custom property (a
+ * `sentrix:field-density` window event re-reads it). `pointer-events` is off;
+ * never affects layout. Static under `prefers-reduced-motion`.
  */
 export function BinaryField({ variant = "ambient" }: BinaryFieldProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -39,12 +66,24 @@ export function BinaryField({ variant = "ambient" }: BinaryFieldProps) {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     const rnd = Math.random
 
+    let density = 1
+    const readDensity = () => {
+      const raw = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue(
+          "--field-density"
+        )
+      )
+      density = Number.isFinite(raw) && raw > 0 ? raw : 1
+    }
+    readDensity()
+
     let cols = 0
     let rows = 0
     let bits = new Uint8Array(0)
     let base = new Float32Array(0)
     let heat = new Float32Array(0)
     let hotPrev = new Uint8Array(0)
+    let traces: Trace[] = []
     let originX = 0
     let originY = 0
 
@@ -67,13 +106,13 @@ export function BinaryField({ variant = "ambient" }: BinaryFieldProps) {
       ctx.clearRect(x - 3, y - cfg.font, cfg.cell, cfg.cell)
 
       const h = heat[i]
-      let a = base[i]
+      let a = Math.min(1, base[i] * density)
       let cr = GOLD[0]
       let cg = GOLD[1]
       let cb = GOLD[2]
       if (h > 0.008) {
         const m = h > 1 ? 1 : h
-        a = Math.min(1, a + h * HL_BOOST)
+        a = Math.min(1, a + h * cfg.hlBoost)
         cr = GOLD[0] + (GOLD_HOT[0] - GOLD[0]) * m
         cg = GOLD[1] + (GOLD_HOT[1] - GOLD[1]) * m
         cb = GOLD[2] + (GOLD_HOT[2] - GOLD[2]) * m
@@ -106,6 +145,7 @@ export function BinaryField({ variant = "ambient" }: BinaryFieldProps) {
       base = new Float32Array(n)
       heat = new Float32Array(n)
       hotPrev = new Uint8Array(n)
+      traces = []
       for (let i = 0; i < n; i += 1) {
         bits[i] = rnd() > 0.5 ? 1 : 0
         base[i] = cfg.baseLo + rnd() * (cfg.baseHi - cfg.baseLo)
@@ -117,7 +157,7 @@ export function BinaryField({ variant = "ambient" }: BinaryFieldProps) {
     const stampTrail = (x0: number, y0: number, x1: number, y1: number) => {
       const dist = Math.hypot(x1 - x0, y1 - y0)
       const steps = Math.min(28, Math.max(1, Math.floor(dist / (cfg.cell * 0.55))))
-      const span = Math.ceil(HL_RADIUS / cfg.cell)
+      const span = Math.ceil(cfg.hlRadius / cfg.cell)
       for (let s = 0; s <= steps; s += 1) {
         const t = s / steps
         const x = x0 + (x1 - x0) * t
@@ -133,8 +173,8 @@ export function BinaryField({ variant = "ambient" }: BinaryFieldProps) {
             const gx = c * cfg.cell + cfg.cell / 2
             const gy = r * cfg.cell + cfg.font
             const d = Math.hypot(gx - x, gy - y)
-            if (d > HL_RADIUS) continue
-            const fall = 1 - d / HL_RADIUS
+            if (d > cfg.hlRadius) continue
+            const fall = 1 - d / cfg.hlRadius
             const add = fall * fall * 1.7
             const i = r * cols + c
             if (add > heat[i]) heat[i] = add
@@ -167,7 +207,7 @@ export function BinaryField({ variant = "ambient" }: BinaryFieldProps) {
       }
 
       if (frame % cfg.flipEvery === 0) {
-        const k = Math.max(1, Math.floor(bits.length * cfg.flipFrac))
+        const k = Math.max(1, Math.floor(bits.length * cfg.flipFrac * density))
         for (let j = 0; j < k; j += 1) {
           const i = (rnd() * bits.length) | 0
           bits[i] = bits[i] ? 0 : 1
@@ -176,11 +216,38 @@ export function BinaryField({ variant = "ambient" }: BinaryFieldProps) {
         }
       }
 
+      if (cfg.traces) {
+        if (frame % 150 === 0 && traces.length < 3 && rnd() < 0.7) {
+          traces.push({
+            row: (rnd() * rows) | 0,
+            x: -2,
+            vx: 0.4 + rnd() * 0.8,
+            life: 1,
+          })
+        }
+        if (traces.length) {
+          for (const tr of traces) {
+            tr.x += tr.vx
+            tr.life -= 0.006
+            const head = Math.floor(tr.x)
+            for (let d = 0; d < 3; d += 1) {
+              const c = head - d
+              if (c < 0 || c >= cols || tr.row >= rows) continue
+              const i = tr.row * cols + c
+              const add = tr.life * (1 - d * 0.3)
+              if (add > heat[i]) heat[i] = add
+            }
+          }
+          traces = traces.filter((tr) => tr.life > 0 && tr.x - 3 < cols)
+          anyHeat = true
+        }
+      }
+
       if (anyHeat) {
         let still = false
         for (let i = 0; i < heat.length; i += 1) {
           if (heat[i] > 0.006) {
-            heat[i] *= HEAT_DECAY
+            heat[i] *= cfg.heatDecay
             hotPrev[i] = 1
             paintCell(i)
             still = true
@@ -190,7 +257,7 @@ export function BinaryField({ variant = "ambient" }: BinaryFieldProps) {
             paintCell(i)
           }
         }
-        anyHeat = still
+        anyHeat = still || traces.length > 0
       }
     }
 
@@ -201,19 +268,19 @@ export function BinaryField({ variant = "ambient" }: BinaryFieldProps) {
       window.clearTimeout(resizeT)
       resizeT = window.setTimeout(layout, 150)
     }
+    const onDensity = () => readDensity()
     window.addEventListener("resize", onResize)
+    window.addEventListener("sentrix:field-density", onDensity)
 
     if (reduce) {
       return () => {
         window.removeEventListener("resize", onResize)
+        window.removeEventListener("sentrix:field-density", onDensity)
         window.clearTimeout(resizeT)
       }
     }
 
-    // Cursor trail is only for the intro gate; the dashboard field just flips.
-    if (variant === "intro") {
-      window.addEventListener("pointermove", onPointerMove, { passive: true })
-    }
+    window.addEventListener("pointermove", onPointerMove, { passive: true })
     raf = window.requestAnimationFrame(tick)
 
     return () => {
@@ -221,6 +288,7 @@ export function BinaryField({ variant = "ambient" }: BinaryFieldProps) {
       window.cancelAnimationFrame(raf)
       window.clearTimeout(resizeT)
       window.removeEventListener("resize", onResize)
+      window.removeEventListener("sentrix:field-density", onDensity)
       window.removeEventListener("pointermove", onPointerMove)
     }
   }, [variant])

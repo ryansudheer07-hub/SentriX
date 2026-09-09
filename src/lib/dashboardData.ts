@@ -62,6 +62,22 @@ export const riskOverview = {
   score: 87,
   band: "HIGH RISK",
   note: "Multiple indicators detected across transaction behavior and network activity.",
+  /** % change vs the 30-day baseline; positive = risk rising. */
+  baselineDelta: 12.4,
+  updated: "14:42 UTC",
+  /**
+   * 24h risk trajectory, oldest → newest, 0–100. Fixture like the rest of this
+   * panel — a real backend replaces it; the Risk Core shows "pending backend"
+   * if it is empty rather than drawing a fake line.
+   */
+  trend: [61, 63, 62, 66, 70, 69, 74, 78, 76, 81, 84, 87],
+  /** Contribution split behind the score (mirrors the Explainability factors). */
+  factors: [
+    { key: "graph", label: "Graph", weight: 38 },
+    { key: "network", label: "Network", weight: 24 },
+    { key: "cluster", label: "Cluster", weight: 21 },
+    { key: "history", label: "History", weight: 17 },
+  ],
 }
 
 export type GraphNodeTone = "source" | "neutral" | "mixer" | "danger"
@@ -200,3 +216,15 @@ export const suggestedQueries = [
 
 export const searchPlaceholder =
   "Search address, transaction hash, or ask Sentrix…"
+
+/**
+ * Base series for the Transaction Analysis surfaces. Fixture data like the rest
+ * of this file — the section permutes it by a hash of the typed query so
+ * different transactions look different, and labels it "illustrative".
+ */
+export const txAnalysisSeries = {
+  /** relative value moved along the flow */
+  value: [4, 6, 5, 9, 7, 12, 10, 15, 12, 18, 15, 21],
+  /** distinct peers touched over the window */
+  fanout: [2, 3, 3, 5, 4, 7, 6, 9, 8, 11, 10, 13],
+}

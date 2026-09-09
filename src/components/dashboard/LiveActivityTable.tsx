@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react"
+
 import {
   activity,
   suggestedQueries,
@@ -18,6 +20,15 @@ function riskTone(risk: number): string {
 
 const COLUMNS = ["Time", "Transaction", "Amount", "From", "To", "Risk", "Status"]
 
+/** CSS custom properties don't fit `CSSProperties` in this TS lib version. */
+const cssVars = (v: Record<string, number>): CSSProperties =>
+  v as unknown as CSSProperties
+
+/**
+ * Live transaction stream (brief §17). Fixture-backed for now — a real feed
+ * replaces `activity`. Each row carries a risk micro-bar and lifts on hover;
+ * rows ease in on mount (staggered, reduced-motion-safe via CSS).
+ */
 export function LiveActivityTable() {
   return (
     <section className="panel activity">
@@ -41,14 +52,25 @@ export function LiveActivityTable() {
             </tr>
           </thead>
           <tbody>
-            {activity.map((row) => (
-              <tr key={row.tx}>
+            {activity.map((row, i) => (
+              <tr
+                key={row.tx}
+                className="activity__row"
+                style={cssVars({ "--row-i": i })}
+              >
                 <td className="activity__mono">{row.time}</td>
                 <td className="activity__mono">{row.tx}</td>
                 <td className="activity__mono activity__amount">{row.amount}</td>
                 <td className="activity__mono">{row.from}</td>
                 <td className="activity__mono">{row.to}</td>
                 <td className={`activity__risk activity__risk--${riskTone(row.risk)}`}>
+                  <span
+                    className="activity__riskbar"
+                    aria-hidden="true"
+                    style={cssVars({ "--risk": row.risk })}
+                  >
+                    <span />
+                  </span>
                   {row.risk}
                 </td>
                 <td>

@@ -1,4 +1,4 @@
-import type { ElementType } from "react"
+import type { ElementType, ReactNode } from "react"
 
 type SentrixWordmarkProps = {
   /** Heading level / element to render. Defaults to `h1`. */
@@ -6,6 +6,10 @@ type SentrixWordmarkProps = {
   className?: string
   /** Disable the entrance animation (it also respects prefers-reduced-motion). */
   animate?: boolean
+  /** Override the visible glyphs (e.g. the intro's system-init resolve). */
+  children?: ReactNode
+  /** Keep the accessible name stable while `children` is a transient scramble. */
+  "aria-label"?: string
 }
 
 /**
@@ -17,9 +21,12 @@ export function SentrixWordmark({
   as: Tag = "h1",
   className,
   animate = true,
+  children,
+  "aria-label": ariaLabel,
 }: SentrixWordmarkProps) {
   return (
     <Tag
+      aria-label={ariaLabel}
       className={[
         "sentrix-wordmark",
         animate ? "sentrix-wordmark--animate" : "",
@@ -28,7 +35,7 @@ export function SentrixWordmark({
         .filter(Boolean)
         .join(" ")}
     >
-      Sentrix
+      {children ?? "Sentrix"}
     </Tag>
   )
 }
