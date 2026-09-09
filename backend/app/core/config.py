@@ -46,5 +46,24 @@ class Settings(BaseSettings):
     traffic_weight_peer_concentration: float = 0.25
     traffic_weight_propagation_irregularity: float = 0.25
 
+    # --- SentriX AI assistant ---
+    # `mock` (default) needs no key and routes over the real SentriX tools.
+    # `openai` calls an OpenAI-compatible chat-completions API (set AI_BASE_URL
+    # for Azure / local / other gateways). AI_API_KEY never leaves the backend.
+    ai_enabled: bool = True
+    ai_provider: str = "mock"
+    ai_model: str = "gpt-4o-mini"
+    ai_api_key: str = ""
+    ai_base_url: str = "https://api.openai.com/v1"
+    ai_temperature: float = 0.2
+    ai_max_tokens: int = 1200
+    ai_timeout_seconds: float = 30.0
+    ai_max_tool_calls: int = 5
+    ai_max_context_items: int = 20
+    ai_history_limit: int = 12
+    # Gemini only: extended-thinking token budget. 0 disables it (fastest);
+    # -1 leaves the model's dynamic default on.
+    ai_thinking_budget: int = 0
+
 
 settings = Settings()

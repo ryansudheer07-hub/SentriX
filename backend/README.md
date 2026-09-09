@@ -48,6 +48,8 @@ Interactive API docs: http://127.0.0.1:8000/docs
 | GET | `/traffic/anomalies?min_score=&limit=` | admin/investigator/analyst | ranked traffic anomalies |
 | GET | `/traffic/{id}/correlation` | admin/investigator/analyst | explainable anomaly result (transaction or peer) |
 | GET | `/traffic/{txid}/propagation` | admin/investigator/analyst | per-peer broadcast timeline (frontend viz) |
+| GET | `/ai/status` | admin/investigator/analyst | AI enabled? provider / model |
+| POST | `/ai/chat` | admin/investigator/analyst | SentriX AI assistant (tool-using) |
 | GET | `/audit/logs?limit=` | admin only | who queried what, and when |
 
 Every request (successful or not) is logged to `audit.log` as JSON lines:
@@ -150,6 +152,53 @@ tshark must be installed for live/PCAP parsing; Bitcoin P2P visibility is
 limited to what the Wireshark `bitcoin` dissector exposes (message type always,
 txid only from `inv` announcements, nothing for encrypted BIP-324 v2
 transport); the demo fixtures are synthetic; anomaly detection is heuristic.
+
+## SentriX AI assistant (`/ai/chat`)
+
+```
+Next.js ──JWT──▶ POST /ai/chat ──▶ SentriX AI service
+                     ▲                    │  system prompt + trimmed history + structured context
+                     │                    ▼
+                     │              AIProvider  (mock | openai-compatible)
+                     │                    │  tool calls
+                     │                    ▼
+                     └──────────── tool layer (RBAC + arg validation)
+                                          │  calls existing services only
+                        risk_service · traffic_correlation · alerts · audit
+```
+
+A tool-using forensic assistant, not a chat clone. The model can only call the
+registered SentriX tools (`get_address_risk`, `get_address_graph`,
+`get_address_alerts`, `get_recent_alerts`, `get_dashboard_summary`,
+`get_traffic_status`, `get_traffic_anomalies`, `get_transaction_correlation`,
+`get_transaction_propagation`, `search_address/transaction`, `get_audit_context`
+[admin only], `emit_action`). Each tool validates its arguments and enforces the
+same roles as the equivalent REST endpoint; nothing else is reachable — no
+URLs, shell, filesystem, code or Neo4j. Every `/ai/chat` request is audit-logged
+(path by the middleware; an `ai_chat` system event records user, role,
+conversation id, tools used and action types — never message content, tokens or
+secrets).
+
+- **Provider** — `AI_PROVIDER=mock` (default) needs no key and routes the
+  message + context over the real tools, returning an evidence-grounded answer.
+  `AI_PROVIDER=openai` + `AI_API_KEY` uses an OpenAI-compatible chat-completions
+  API (`AI_BASE_URL` for Azure / local gateways). The key never reaches the
+  browser. If a real provider is selected without a key, it falls back to mock.
+- **Context** — the frontend sends a trimmed, structured snapshot (route,
+  selected address/transaction/node, graph counts, role). The backend trusts
+  the JWT role, not the client's.
+- **Risk scale** — tools return 0–1 and also `*_100`; the assistant presents
+  `87/100, HIGH`.
+- **Navigation** — the model calls `emit_action` with a supported action
+  (`navigate` to a known section id, `open_address`, `focus_graph_node`,
+  `filter_risk`, `open_alert`); the frontend executes only those.
+- **Injection resistance** — tool output is fenced as untrusted data; the
+  system prompt forbids following instructions found inside it.
+
+```bash
+uvicorn app.main:app --reload --port 8000            # mock provider, no key
+AI_PROVIDER=openai AI_API_KEY=sk-... uvicorn app.main:app --port 8000   # real LLM
+```
 
 ## Tests
 

@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 
-from app.api.routers import address, alerts, audit, auth, graph, traffic
+from app.api.routers import address, ai, alerts, audit, auth, graph, traffic
 from app.capture.manager import capture_manager
 from app.core.security import decode_access_token
 from app.scheduler import rescoring
@@ -68,4 +68,5 @@ app.include_router(address.router)
 app.include_router(alerts.router)
 app.include_router(graph.router)
 app.include_router(traffic.router)
+app.include_router(ai.router)
 app.include_router(audit.router)

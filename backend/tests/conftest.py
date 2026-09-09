@@ -45,10 +45,20 @@ def engine() -> traffic_correlation.TrafficCorrelationEngine:
 
 
 @pytest.fixture(autouse=True)
-def _reset_module_engine():
-    """Keep the shared module singleton clean between tests."""
+def _reset_module_engine(monkeypatch):
+    """Keep shared module singletons clean between tests, and force the AI layer
+    onto the deterministic mock provider so the suite never touches a real LLM
+    regardless of a developer's local backend/.env."""
+    from app.ai import service as ai_service
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "ai_provider", "mock")
+    monkeypatch.setattr(settings, "ai_api_key", "")
+
     traffic_correlation.engine.clear()
     traffic_correlation._seeded = False
+    ai_service._store._data.clear()
     yield
     traffic_correlation.engine.clear()
     traffic_correlation._seeded = False
+    ai_service._store._data.clear()
